@@ -1,6 +1,3 @@
-Here is a repurposed **README** tailored for the **AON Internal Staff Lead Screener System** (non-public-facing), emphasizing internal use, staff workflow, and Azure-based AI infrastructure:
-
-
 # AON Internal Lead Screener AI Assistant
 
 Developed by **Pyramid Systems Inc.**, this solution powers AON's internal staff (analysts, marketing, sales, and operations) with an **AI-driven lead classification and insight tool** built on Azure.
