@@ -57,15 +57,24 @@ resource "azurerm_service_plan" "asp" {
 }
 
 data "azurerm_search_service" "search" {
-  name                = "aon"
+  name                = "yrci"
   resource_group_name = data.azurerm_resource_group.rg.name
 }
 
 data "azurerm_cognitive_account" "openai" {
   for_each = var.regions
 
-  name                = "aon-${each.key}"
+  name                = "air-hr-${each.key}"
   resource_group_name = data.azurerm_resource_group.rg.name
+}
+
+resource "azurerm_application_insights" "central" {
+  name                = "aon-ai-central-appinsights"
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
+  application_type    = "web"
+  workspace_id        = "/subscriptions/797a03a0-9429-4393-8662-327191141b7b/resourceGroups/${data.azurerm_resource_group.rg.name}/providers/Microsoft.OperationalInsights/workspaces/DefaultWorkspace-797a03a0-9429-4393-8662-327191141b7b-EUS2"
+  # Optional: workspace_id if using Log Analytics
 }
 
 # App Services - one per region
@@ -87,7 +96,7 @@ resource "azurerm_linux_web_app" "app" {
     # "APPINSIGHTS_SNAPSHOTFEATURE_VERSION" = "disabled"
     "AUTH_CLIENT_SECRET" = ""
     "AUTH_ENABLED"       = "False"
-    #"AZURE_COSMOSDB_ACCOUNT"                          = "db-aon-large"
+    #"AZURE_COSMOSDB_ACCOUNT"                          = "db-yrci-large"
     #"AZURE_COSMOSDB_CONVERSATIONS_CONTAINER"          = "conversations"
     #"AZURE_COSMOSDB_DATABASE"                         = "db_conversation_history"
     "AZURE_COSMOSDB_MONGO_VCORE_CONNECTION_STRING" = ""
@@ -166,6 +175,11 @@ resource "azurerm_linux_web_app" "app" {
     "XDT_MicrosoftApplicationInsights_BaseExtensions" = "disabled"
     "XDT_MicrosoftApplicationInsights_Mode"           = "recommended"
     "XDT_MicrosoftApplicationInsights_PreemptSdk"     = "disabled"
+    # Add the instrumentation key or connection string here
+    "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.central.connection_string
+    "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.central.instrumentation_key
+    
+
 
   }
 
