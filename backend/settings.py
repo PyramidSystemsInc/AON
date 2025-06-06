@@ -45,7 +45,7 @@ class _UiSettings(BaseSettings):
     logo: Optional[str] = "https://yrci-public-ercecudsgcgbfxdt.z01.azurefd.net/assets/psi-logo.png"
     chat_logo: Optional[str] = ""
     chat_title: str = ""
-    chat_description: str = "Analyze health insurance claim data from CMS-1500 forms"
+    chat_description: str = "AON Internal Staff Chatbot System
     favicon: str = ""
     show_share_button: bool = True
     show_chat_history_button: bool = False
