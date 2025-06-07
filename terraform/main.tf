@@ -179,8 +179,6 @@ resource "azurerm_linux_web_app" "app" {
     "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.central.connection_string
     "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.central.instrumentation_key
 
-
-
   }
 
   site_config {
