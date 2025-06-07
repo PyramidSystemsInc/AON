@@ -178,7 +178,7 @@ resource "azurerm_linux_web_app" "app" {
     # Add the instrumentation key or connection string here
     "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.central.connection_string
     "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.central.instrumentation_key
-    
+
 
 
   }
@@ -275,3 +275,4 @@ resource "azurerm_linux_web_app" "app" {
   https_only = true
 
 }
+
