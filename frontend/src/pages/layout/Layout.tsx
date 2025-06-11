@@ -195,8 +195,8 @@ const Layout = () => {
                 rel="noopener noreferrer"
                 className={styles.partnerLink}>
                 <img
-                  src="https://yrci-public-ercecudsgcgbfxdt.z01.azurefd.net/assets/psi-logo.png"
-                  alt="Pyramid Systems"
+                  src="https://upload.wikimedia.org/wikipedia/commons/7/72/Aon_Corporation_logo.svg"
+                  alt="OAN"
                   className={styles.partnerLogo}
                 />
               </a>

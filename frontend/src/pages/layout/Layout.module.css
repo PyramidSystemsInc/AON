@@ -5,7 +5,7 @@
 }
 
 .header {
-  background-color: #ebebeb;
+  background-color: #2a2929;
 }
 
 .headerContainer {
@@ -32,6 +32,8 @@
 }
 
 .headerIcon {
+  margin-top: 8px;
+  margin-bottom: 8px;
   height: 32px;
   width: auto;
   margin-left: 36px;
@@ -274,7 +276,7 @@
 .footerDisclaimerLink {
   background: none;
   border: none;
-  color: #a7c7e7; /* Light blue shade that will stand out against navy */
+  color: #f6f6f6; /* Light blue shade that will stand out against navy */
   font-size: 13px;
   text-decoration: underline;
   cursor: pointer;
