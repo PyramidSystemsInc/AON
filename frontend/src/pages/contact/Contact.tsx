@@ -6,86 +6,137 @@ interface LinkedInUser {
   lastName: string
   email: string
   organization: string
+  picture: string
+  locale: string | { country: string; language: string }
+  sub: string
 }
 
 const Contact: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
   const [linkedInUser, setLinkedInUser] = useState<LinkedInUser>({
     firstName: '',
     lastName: '',
     email: '',
-    organization: ''
-  })
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    jobTitle: '',
-    email: '',
-    location: '',
-    countryCode: '',
-    phone: '',
     organization: '',
-    industry: '',
-    revenue: '',
-    employees: '',
-    message: ''
+    picture: '',
+    locale: '',
+    sub: ''
   })
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    // Check if user is authenticated
-    const urlParams = new URLSearchParams(window.location.search)
+    // Parse URL parameters from hash (since we're using HashRouter)
+    const hash = window.location.hash
+    const urlParams = new URLSearchParams(hash.split('?')[1] || '')
+    const success = urlParams.get('success') === 'true'
     const authenticated = urlParams.get('authenticated') === 'true'
-    setIsAuthenticated(authenticated)
+    const errorParam = urlParams.get('error')
 
-    if (authenticated) {
-        fetch('/linkedin/user')
-          .then(response => response.json())
-          .then((data: LinkedInUser) => {
+    console.log('Hash:', hash)
+    console.log('URL Params:', urlParams.toString())
+    console.log('Success:', success)
+    console.log('Authenticated:', authenticated)
+    console.log('Error:', errorParam)
+
+    if (success) {
+      setIsSuccess(true)
+      setIsAuthenticated(true)
+      fetch('/linkedin/user')
+        .then(response => response.json())
+        .then((data: LinkedInUser) => {
+          console.log('LinkedIn user data:', data)
+          if (data && Object.keys(data).length > 0) {
             setLinkedInUser(data)
-            setFormData(prev => ({
-              ...prev,
-              firstName: data.firstName || '',
-              lastName: data.lastName || '',
-              email: data.email || '',
-              organization: data.organization || ''
-            }))
-          })
-          .catch(error => console.error('Error fetching user data:', error))
+          } else {
+            console.log('Session data empty, but LinkedIn auth was successful')
+          }
+        })
+        .catch(error => console.error('Error fetching user data:', error))
+    } else if (authenticated) {
+      setIsAuthenticated(true)
+      fetch('/linkedin/user')
+        .then(response => response.json())
+        .then((data: LinkedInUser) => {
+          setLinkedInUser(data)
+        })
+        .catch(error => console.error('Error fetching user data:', error))
+    } else if (errorParam) {
+      setError(errorParam)
     }
   }, [])
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
+  const handleReturnToChat = () => {
+    window.location.href = '/#/'
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    try {
-      const response = await fetch('/submit-contact', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-      })
-
-      const result = await response.json()
-
-      if (result.success) {
-        alert('Thank you! Your information has been submitted successfully.')
-        window.location.href = result.redirect
-      } else {
-        alert('There was an error submitting your information. Please try again.')
-      }
-    } catch (error) {
-      console.error('Error:', error)
-      alert('There was an error submitting your information. Please try again.')
+  const formatLocale = (locale: string | { country: string; language: string }) => {
+    if (typeof locale === 'string') {
+      return locale
+    } else if (locale && typeof locale === 'object') {
+      return `${locale.language}-${locale.country}`
     }
+    return ''
+  }
+
+  if (error) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.header}>
+          <h1>Authentication Error</h1>
+        </div>
+        <div className={styles.errorSection}>
+          <p>There was an error with LinkedIn authentication: {error}</p>
+          <button onClick={() => window.location.href = '/linkedin/login'} className={styles.linkedinBtn}>
+            Try Again
+          </button>
+          <button onClick={handleReturnToChat} className={styles.returnBtn}>
+            Return to Chat
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (isSuccess) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.header}>
+          <h1>Thank you!</h1>
+          <h2>Information has been successfully collected</h2>
+        </div>
+        
+        <div className={styles.successSection}>
+          <div className={styles.userInfo}>
+            <h3>Your LinkedIn Information:</h3>
+            {linkedInUser.picture && (
+              <img src={linkedInUser.picture} alt="Profile" className={styles.profilePicture} />
+            )}
+            <div className={styles.userDetails}>
+              {linkedInUser.firstName && linkedInUser.lastName && (
+                <p><strong>Name:</strong> {linkedInUser.firstName} {linkedInUser.lastName}</p>
+              )}
+              {linkedInUser.email && (
+                <p><strong>Email:</strong> {linkedInUser.email}</p>
+              )}
+              {linkedInUser.locale && (
+                <p><strong>Locale:</strong> {formatLocale(linkedInUser.locale)}</p>
+              )}
+              {linkedInUser.sub && (
+                <p><strong>LinkedIn ID:</strong> {linkedInUser.sub}</p>
+              )}
+              {(!linkedInUser.firstName && !linkedInUser.lastName && !linkedInUser.email) && (
+                <p>✅ Your LinkedIn information has been successfully saved.</p>
+              )}
+            </div>
+          </div>
+          
+          <button onClick={handleReturnToChat} className={styles.returnBtn}>
+            Return to Chat
+          </button>
+        </div>
+      </div>
+    )
   }
 
   if (!isAuthenticated) {
@@ -93,7 +144,7 @@ const Contact: React.FC = () => {
       <div className={styles.container}>
         <div className={styles.header}>
           <h1>I'm interested in</h1>
-          <h2>Talking to You</h2>
+          <h2>Talking to Aon</h2>
         </div>
         <div className={styles.loginSection}>
           <p>Please sign in with LinkedIn to continue</p>
@@ -108,209 +159,10 @@ const Contact: React.FC = () => {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1>I'm interested in</h1>
-        <h2>Talking to You</h2>
+        <h1>Processing...</h1>
       </div>
-      
-      <div className={styles.formContainer}>
-        <form onSubmit={handleSubmit}>
-          <div className={styles.sectionTitle}>About You</div>
-          
-          <div className={styles.formRow}>
-            <div className={styles.formGroup}>
-              <label htmlFor="firstName">First Name *</label>
-              <input
-                type="text"
-                id="firstName"
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div className={styles.formGroup}>
-              <label htmlFor="lastName">Last Name *</label>
-              <input
-                type="text"
-                id="lastName"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-          </div>
-          
-          <div className={styles.formGroup}>
-            <label htmlFor="jobTitle">Job Title *</label>
-            <input
-              type="text"
-              id="jobTitle"
-              name="jobTitle"
-              value={formData.jobTitle}
-              onChange={handleInputChange}
-              required
-            />
-          </div>
-          
-          <div className={styles.formGroup}>
-            <label htmlFor="email">Business Email Address *</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              required
-            />
-          </div>
-          
-          <div className={styles.formGroup}>
-            <label htmlFor="location">Location *</label>
-            <select
-              id="location"
-              name="location"
-              value={formData.location}
-              onChange={handleInputChange}
-              required
-            >
-              <option value="">Select Location</option>
-              <option value="US">United States</option>
-              <option value="CA">Canada</option>
-              <option value="UK">United Kingdom</option>
-              <option value="AU">Australia</option>
-              <option value="DE">Germany</option>
-              <option value="FR">France</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-          
-          <div className={styles.formRow}>
-            <div className={styles.formGroup}>
-              <label htmlFor="countryCode">Country Code*</label>
-              <select
-                id="countryCode"
-                name="countryCode"
-                value={formData.countryCode}
-                onChange={handleInputChange}
-                required
-              >
-                <option value="">Select</option>
-                <option value="+1">+1 (US/CA)</option>
-                <option value="+44">+44 (UK)</option>
-                <option value="+61">+61 (AU)</option>
-                <option value="+49">+49 (DE)</option>
-                <option value="+33">+33 (FR)</option>
-              </select>
-            </div>
-            <div className={styles.formGroup}>
-              <label htmlFor="phone">Phone Number*</label>
-              <input
-                type="tel"
-                id="phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-          </div>
-          
-          <div className={styles.sectionTitle}>About Your Business</div>
-          
-          <div className={styles.formGroup}>
-            <label htmlFor="organization">Organization Name *</label>
-            <input
-              type="text"
-              id="organization"
-              name="organization"
-              value={formData.organization}
-              onChange={handleInputChange}
-              required
-            />
-          </div>
-          
-          <div className={styles.formGroup}>
-            <label htmlFor="industry">Industry *</label>
-            <select
-              id="industry"
-              name="industry"
-              value={formData.industry}
-              onChange={handleInputChange}
-              required
-            >
-              <option value="">Select Industry</option>
-              <option value="technology">Technology</option>
-              <option value="healthcare">Healthcare</option>
-              <option value="finance">Financial Services</option>
-              <option value="manufacturing">Manufacturing</option>
-              <option value="retail">Retail</option>
-              <option value="education">Education</option>
-              <option value="government">Government</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-          
-          <div className={styles.formGroup}>
-            <label htmlFor="revenue">Annual Revenue *</label>
-            <select
-              id="revenue"
-              name="revenue"
-              value={formData.revenue}
-              onChange={handleInputChange}
-              required
-            >
-              <option value="">Select Revenue Range</option>
-              <option value="under-1m">Under $1M</option>
-              <option value="1m-10m">$1M - $10M</option>
-              <option value="10m-100m">$10M - $100M</option>
-              <option value="100m-1b">$100M - $1B</option>
-              <option value="over-1b">Over $1B</option>
-            </select>
-          </div>
-          
-          <div className={styles.formGroup}>
-            <label htmlFor="employees">Employee Headcount *</label>
-            <select
-              id="employees"
-              name="employees"
-              value={formData.employees}
-              onChange={handleInputChange}
-              required
-            >
-              <option value="">Select Employee Count</option>
-              <option value="1-10">1-10</option>
-              <option value="11-50">11-50</option>
-              <option value="51-200">51-200</option>
-              <option value="201-1000">201-1000</option>
-              <option value="1001-5000">1001-5000</option>
-              <option value="5000+">5000+</option>
-            </select>
-          </div>
-          
-          <div className={styles.sectionTitle}>How Can We Help?</div>
-          
-          <div className={styles.formGroup}>
-            <textarea
-              id="message"
-              name="message"
-              value={formData.message}
-              onChange={handleInputChange}
-              placeholder="Add a message"
-            />
-          </div>
-          
-          <div className={styles.privacyText}>
-            We will use the information you provide on this form to respond to your specific 
-            request. Submitting this form will not subscribe you to receiving marketing 
-            communications from us, and all information provided will be managed in accordance 
-            with <a href="#" target="_blank">Global privacy statement</a>.
-          </div>
-          
-          <button type="submit" className={styles.submitBtn}>
-            Submit →
-          </button>
-        </form>
+      <div className={styles.loginSection}>
+        <p>Saving your information...</p>
       </div>
     </div>
   )
