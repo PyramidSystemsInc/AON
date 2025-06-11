@@ -41,8 +41,8 @@ class _UiSettings(BaseSettings):
         env_ignore_empty=True
     )
 
-    title: str = "Pyramid-Systems"
-    logo: Optional[str] = "https://yrci-public-ercecudsgcgbfxdt.z01.azurefd.net/assets/psi-logo.png"
+    title: str = ""
+    logo: Optional[str] = "https://upload.wikimedia.org/wikipedia/commons/7/72/Aon_Corporation_logo.svg"
     chat_logo: Optional[str] = ""
     chat_title: str = ""
     chat_description: str = "AON Internal Staff Chatbot System"
