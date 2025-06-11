@@ -13,8 +13,11 @@ from quart import (
     send_from_directory,
     render_template,
     current_app,
+    redirect,
+    session,
 )
 from typing import Dict, List, Any
+from requests_oauthlib import OAuth2Session
 
 from openai import AsyncAzureOpenAI
 from azure.identity.aio import (
@@ -41,8 +44,8 @@ from opentelemetry.instrumentation.asgi import OpenTelemetryMiddleware
 
 # Configure OpenTelemetry to use Azure Monitor with the 
 # APPLICATIONINSIGHTS_CONNECTION_STRING environment variable.
-configure_azure_monitor(enable_live_metrics=True,
-                        instrumentation_options={"azure_sdk": {"enabled": True}, "flask": {"enabled": False}, "django": {"enabled": False}})
+# configure_azure_monitor(enable_live_metrics=True,
+#                         instrumentation_options={"azure_sdk": {"enabled": True}, "flask": {"enabled": False}, "django": {"enabled": False}})
 
 
 logger = logging.getLogger(__name__)  # Use __name__ for proper module hierarchy
@@ -57,6 +60,7 @@ def create_app():
     app.asgi_app = OpenTelemetryMiddleware(app.asgi_app)
     app.register_blueprint(bp)
     app.config["TEMPLATES_AUTO_RELOAD"] = True
+    app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
     
     @app.before_serving
     async def init():
@@ -1003,5 +1007,113 @@ async def generate_title(conversation_messages) -> str:
         logger.exception("Exception while generating title", e)
         return messages[-2]["content"]
 
+
+LINKEDIN_CLIENT_ID = os.environ.get('LINKEDIN_CLIENT_ID', '')
+LINKEDIN_CLIENT_SECRET = os.environ.get('LINKEDIN_CLIENT_SECRET', '')
+LINKEDIN_REDIRECT_URI = os.environ.get('LINKEDIN_REDIRECT_URI', 'http://localhost:50505/linkedin/callback')
+LINKEDIN_SCOPE = ['openid', 'profile', 'email']
+LINKEDIN_AUTHORIZATION_URL = 'https://www.linkedin.com/oauth/v2/authorization'
+LINKEDIN_TOKEN_URL = 'https://www.linkedin.com/oauth/v2/accessToken'
+
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+
+@bp.route("/contact-us")
+async def contact_us_redirect():
+    return redirect('/#/contact-us')
+
+@bp.route("/linkedin/login")
+async def linkedin_login():
+    linkedin = OAuth2Session(
+        LINKEDIN_CLIENT_ID,
+        scope=LINKEDIN_SCOPE,
+        redirect_uri=LINKEDIN_REDIRECT_URI
+    )
+    authorization_url, state = linkedin.authorization_url(LINKEDIN_AUTHORIZATION_URL)
+    session['oauth_state'] = state
+    return redirect(authorization_url)
+
+@bp.route("/linkedin/callback")
+async def linkedin_callback():
+    linkedin = OAuth2Session(
+        LINKEDIN_CLIENT_ID,
+        state=session['oauth_state'],
+        redirect_uri=LINKEDIN_REDIRECT_URI
+    )
+    
+    authorization_response = str(request.url)
+    print(f"debug auth response: {authorization_response}")
+    print(f"Raw request URL {request.url}")
+    print(f"Request args: {request.args}")
+    # token = linkedin.fetch_token(
+    #     LINKEDIN_TOKEN_URL,
+    #     authorization_response=authorization_response,
+    #     client_secret=LINKEDIN_CLIENT_SECRET
+    # )
+    # print(f"Inspect login token: {token}")
+
+    auth_code = request.args.get('code')
+    token_data = {
+        'grant_type': 'authorization_code',
+        'code': auth_code,
+        'client_id': LINKEDIN_CLIENT_ID,
+        'client_secret': LINKEDIN_CLIENT_SECRET,
+        'redirect_uri': LINKEDIN_REDIRECT_URI
+    }
+
+    response = httpx.post(LINKEDIN_TOKEN_URL, data=token_data)
+    print(f"Token response: {response.json()}")
+
+    userinfo_response = linkedin.get('https://api.linkedin.com/v2/userinfo')
+    userinfo_data = userinfo_response.json()
+    print(f"User info data:",userinfo_data)
+
+    user_data = {
+        'firstName': userinfo_data.get('given_name', ''),
+        'lastName': userinfo_data.get('family_name', ''),
+        'email': userinfo_data.get('email', ''),
+        'organization': ''
+    }
+    
+    session['linkedin_user'] = user_data
+    return redirect('/#/contact-us?authenticated=true')
+
+@bp.route("/submit-contact", methods=["POST"])
+async def submit_contact():
+    data = await request.get_json()
+
+    file_path = 'linkedinusers.json'
+
+    try:
+        with open(file_path, 'r') as f:
+            users = json.load(f)
+    except FileNotFoundError:
+        users = []
+
+    user_entry = {
+        'firstName': data.get('firstName'),
+        'lastName': data.get('lastName'), 
+        'jobTitle': data.get('jobTitle'),
+        'email': data.get('email'),
+        'location': data.get('location'),
+        'phone': data.get('phone'),
+        'organization': data.get('organization'),
+        'industry': data.get('industry'),
+        'revenue': data.get('revenue'),
+        'employees': data.get('employees'),
+        'message': data.get('message'),
+        'timestamp': str(uuid.uuid4())
+    }
+    
+    users.append(user_entry)
+
+    with open(file_path, 'w') as f:
+        json.dump(users, f, indent=2)
+
+    return jsonify({'success': True, 'redirect': '/#/'})
+
+@bp.route("/linkedin/user")
+async def get_linkedin_user():
+    user_data = session.get('linkedin_user', {})
+    return jsonify(user_data)
 
 app = create_app()

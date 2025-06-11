@@ -12,3 +12,4 @@ gunicorn==20.1.0
 pydantic-settings==2.2.1
 azure-monitor-opentelemetry
 opentelemetry-instrumentation-asgi
+requests-oauthlib==2.0.0

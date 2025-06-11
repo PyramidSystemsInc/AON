@@ -4,6 +4,7 @@ import { HashRouter, Route, Routes } from 'react-router-dom'
 import { initializeIcons } from '@fluentui/react'
 
 import Chat from './pages/chat/Chat'
+import Contact from './pages/contact/Contact'
 import Layout from './pages/layout/Layout'
 import NoPage from './pages/NoPage'
 import { AppStateProvider } from './state/AppProvider'
@@ -19,6 +20,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<Chat />} />
+            <Route path="/contact-us" element={<Contact />} />
             <Route path="*" element={<NoPage />} />
           </Route>
         </Routes>
